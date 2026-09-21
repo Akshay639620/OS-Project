@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producer-Consumer Synchronization Simulator | OS PBL</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Floating Animation Layer for Moving Items -->
+    <div id="animationOverlay"></div>
+
+    <!-- 1. TOP NAVBAR -->
+    <header class="top-navbar">
+        <div class="nav-brand">
+            <div class="brand-icon-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    <path d="M18 10v4"></path>
+                    <path d="M12 10v4"></path>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <h1>Producer-Consumer Simulator</h1>
+                <div class="brand-badges">
+                    <span class="badge-topic">Sync &amp; Deadlocks</span>
+                    <span class="badge-academic">OS PBL Project • Multiple Producers/Consumers</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-status-area">
+            <div id="connectionBadge" class="conn-badge conn-ready">
+                <span class="status-dot"></span>
+                <span>Simulation Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- 2. HERO / CONTROL SECTION -->
+        <section class="glass-panel control-section">
+            <div class="control-header-row">
+                <div class="section-title-wrap">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        Simulation Controls &amp; Configuration
+                    </h2>
+                    <p>Configure concurrency parameters and control the execution lifecycle.</p>
+                </div>
+
+                <!-- Presets Bar -->
+                <div class="presets-bar">
+                    <span class="presets-label">Demonstration Presets:</span>
+                    <button id="presetFull" class="preset-chip" title="Fast producers quickly saturate the buffer to show blocking">Buffer Full Demo</button>
+                    <button id="presetEmpty" class="preset-chip" title="Fast consumers starve the buffer to show consumer wait state">Buffer Empty Demo</button>
+                    <button id="presetBalanced" class="preset-chip" title="Balanced flow between producers and consumers">Equilibrium</button>
+                    <button id="presetStress" class="preset-chip" title="High thread concurrency stress test">6P / 6C High Load</button>
+                </div>
+            </div>
+
+            <!-- Configuration Grid -->
+            <div class="config-grid">
+                <!-- Producers Count -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="inputProducers">Producers</label>
+                        <span class="config-val-badge font-mono">1–8</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="range" id="sliderProducers" min="1" max="8" value="3">
+                        <input type="number" id="inputProducers" min="1" max="8" value="3">
+                    </div>
+                </div>
+
+                <!-- Consumers Count -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="inputConsumers">Consumers</label>
+                        <span class="config-val-badge font-mono">1–8</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="range" id="sliderConsumers" min="1" max="8" value="3">
+                        <input type="number" id="inputConsumers" min="1" max="8" value="3">
+                    </div>
+                </div>
+
+                <!-- Buffer Capacity -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="inputCapacity">Buffer Capacity</label>
+                        <span class="config-val-badge font-mono">4–16</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="range" id="sliderCapacity" min="4" max="16" value="8">
+                        <input type="number" id="inputCapacity" min="4" max="16" value="8">
+                    </div>
+                </div>
+
+                <!-- Items Per Producer -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="inputItemsPerProd">Items / Producer</label>
+                        <span class="config-val-badge font-mono">Quota</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="number" id="inputItemsPerProd" min="1" max="100" value="15" style="width: 100%;">
+                    </div>
+                </div>
+
+                <!-- Production Delay -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="sliderProdDelay">Production Delay</label>
+                        <span id="valProdDelay" class="config-val-badge font-mono">1200 ms</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="range" id="sliderProdDelay" min="300" max="3000" step="100" value="1200">
+                    </div>
+                </div>
+
+                <!-- Consumption Delay -->
+                <div class="config-item">
+                    <div class="config-label-row">
+                        <label for="sliderConsDelay">Consumption Delay</label>
+                        <span id="valConsDelay" class="config-val-badge font-mono">1500 ms</span>
+                    </div>
+                    <div class="config-controls-row">
+                        <input type="range" id="sliderConsDelay" min="300" max="3000" step="100" value="1500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="control-actions-row">
+                <button id="btnStart" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    START SIMULATION
+                </button>
+                <button id="btnPause" class="btn btn-secondary btn-pause" disabled>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                    PAUSE
+                </button>
+                <button id="btnResume" class="btn btn-secondary btn-resume" disabled>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    RESUME
+                </button>
+                <button id="btnReset" class="btn btn-secondary btn-reset">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <polyline points="23 20 23 14 17 14"></polyline>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                    </svg>
+                    RESET
+                </button>
+            </div>
+        </section>
+
+        <!-- 3 & 4. LIVE SIMULATION AREA & SHARED BOUNDED BUFFER -->
+        <section class="glass-panel sim-area-panel">
+            <div class="sim-area-grid">
+                <!-- Left: Producers Column -->
+                <div class="sim-column">
+                    <div class="column-header">
+                        <div class="col-title-group">
+                            <span class="col-title title-producers">Producers</span>
+                        </div>
+                        <span class="text-muted font-mono" style="font-size: 11px;">Thread Pool</span>
+                    </div>
+                    <div id="producersContainer" class="threads-scroll-container">
+                        <!-- Dynamically populated producer cards -->
+                    </div>
+                </div>
+
+                <!-- Center: Shared Bounded Buffer Visualization -->
+                <div class="buffer-center-container">
+                    <div class="buffer-header-area">
+                        <div class="buffer-title-block">
+                            <h3>Shared Bounded Buffer</h3>
+                            <span class="text-muted" style="font-size: 11px;">Critical Section • Circular Queue Synchronization</span>
+                        </div>
+                        <div class="buffer-capacity-pill font-mono">
+                            CAPACITY: <span id="bufferCapacityLabel">8</span> | SLOTS USED: <span id="bufferCountLabel">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic State Banner -->
+                    <div id="bufferStatusBanner" class="buffer-status-banner status-banner-normal">
+                        <span id="bufferStatusText">BUFFER NORMAL — 0 of 8 slots filled (8 available)</span>
+                    </div>
+
+                    <!-- Pointer Indicators -->
+                    <div class="buffer-pointers-row font-mono">
+                        <span id="inPointerBadge" class="pointer-badge in-badge">IN: [0]</span>
+                        <span class="text-muted" style="font-size: 10px;">in = (in + 1) % N &bull; out = (out + 1) % N</span>
+                        <span id="outPointerBadge" class="pointer-badge out-badge">OUT: [0]</span>
+                    </div>
+
+                    <!-- Slots Visualization Area -->
+                    <div class="buffer-slots-viewport">
+                        <div id="bufferSlotsContainer" class="buffer-slots-grid">
+                            <!-- Dynamically generated circular slots -->
+                        </div>
+                    </div>
+
+                    <!-- Buffer Utilization Bar -->
+                    <div class="buffer-util-footer">
+                        <div class="util-label-row font-mono">
+                            <span>Buffer Utilization</span>
+                            <span id="bufferUtilPercent">0%</span>
+                        </div>
+                        <div class="buffer-util-track">
+                            <div id="bufferUtilProgressBar" class="buffer-util-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Consumers Column -->
+                <div class="sim-column">
+                    <div class="column-header">
+                        <div class="col-title-group">
+                            <span class="col-title title-consumers">Consumers</span>
+                        </div>
+                        <span class="text-muted font-mono" style="font-size: 11px;">Thread Pool</span>
+                    </div>
+                    <div id="consumersContainer" class="threads-scroll-container">
+                        <!-- Dynamically populated consumer cards -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5 & 6. SYNCHRONIZATION MONITOR & DEADLOCK MONITOR -->
+        <div class="monitors-grid">
+            <!-- 5. Synchronization Status Panel -->
+            <section class="monitor-card">
+                <div class="card-header-line">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Synchronization Monitor
+                    </h3>
+                    <span class="badge-tag tag-safe font-mono">POSIX Semaphores</span>
+                </div>
+
+                <div class="monitor-stats-grid">
+                    <!-- Mutex -->
+                    <div class="stat-item">
+                        <span class="stat-label">Mutex (Binary Lock)</span>
+                        <div class="stat-val-row">
+                            <span id="mutexStateBadge" class="status-pill-badge pill-success">
+                                <span class="dot"></span> UNLOCKED
+                            </span>
+                            <span id="mutexOwnerBadge" class="thread-tag-sm" style="display: none;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Critical Section -->
+                    <div class="stat-item">
+                        <span class="stat-label">Critical Section</span>
+                        <div class="stat-val-row">
+                            <span id="criticalSectionBadge" class="status-pill-badge pill-neutral">
+                                <span class="dot"></span> FREE
+                            </span>
+                            <span id="criticalSectionThread" class="thread-tag-sm" style="display: none;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Empty Slots Semaphore -->
+                    <div class="stat-item">
+                        <span class="stat-label">Empty Slots (sem_empty)</span>
+                        <div class="stat-val-row font-mono">
+                            <span id="semEmptyCount" class="metric-val" style="font-size: 18px; color: var(--primary-cyan);">8</span>
+                            <span class="text-muted" style="font-size: 11px;">slots available</span>
+                        </div>
+                    </div>
+
+                    <!-- Available Items Semaphore -->
+                    <div class="stat-item">
+                        <span class="stat-label">Available Items (sem_full)</span>
+                        <div class="stat-val-row font-mono">
+                            <span id="semFullCount" class="metric-val" style="font-size: 18px; color: var(--accent-emerald);">0</span>
+                            <span class="text-muted" style="font-size: 11px;">items ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Waiting Producers -->
+                    <div class="stat-item">
+                        <div class="stat-label" style="display: flex; justify-content: space-between;">
+                            <span>Waiting Producers</span>
+                            <span id="waitingProducersCount" class="font-mono text-muted">0</span>
+                        </div>
+                        <div id="waitingProducersList" class="queue-display-box">
+                            <span class="text-muted">None</span>
+                        </div>
+                    </div>
+
+                    <!-- Waiting Consumers -->
+                    <div class="stat-item">
+                        <div class="stat-label" style="display: flex; justify-content: space-between;">
+                            <span>Waiting Consumers</span>
+                            <span id="waitingConsumersCount" class="font-mono text-muted">0</span>
+                        </div>
+                        <div id="waitingConsumersList" class="queue-display-box">
+                            <span class="text-muted">None</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="explanation-callout">
+                    <strong>OS Concept:</strong> Mutex ensures that only one thread accesses the critical section at a time. Counting semaphores <code>sem_empty</code> and <code>sem_full</code> coordinate buffer bounds and sleep/wakeup signaling to prevent race conditions.
+                </div>
+            </section>
+
+            <!-- 6. Deadlock Monitor -->
+            <section class="monitor-card">
+                <div class="card-header-line">
+                    <h3 class="card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        Deadlock Monitor
+                    </h3>
+                    <span class="text-muted font-mono" style="font-size: 11px;">Coffman 4-Conditions</span>
+                </div>
+
+                <!-- Status Banner -->
+                <div id="deadlockBadge" class="deadlock-alert-badge alert-safe">
+                    <span class="icon">✓</span> NO DEADLOCK DETECTED
+                </div>
+                <p id="deadlockStatusText" class="text-muted" style="font-size: 11.5px; text-align: center;">
+                    Resource ordering protocol active. Safe synchronization state.
+                </p>
+
+                <div class="monitor-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Blocked / Waiting Threads</span>
+                        <span id="deadlockWaitingThreads" class="font-mono" style="font-size: 16px; font-weight: 700; color: #f1f5f9;">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Circular Wait Status</span>
+                        <div id="deadlockCircularWait">
+                            <span class="badge-tag tag-safe font-mono">NO CYCLE (SAFE)</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Resources Held</span>
+                        <span id="deadlockHeldResources" class="font-mono text-muted" style="font-size: 11px; word-break: break-word;">None</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Resources Requested</span>
+                        <span id="deadlockRequestedResources" class="font-mono text-muted" style="font-size: 11px; word-break: break-word;">None</span>
+                    </div>
+                </div>
+
+                <!-- Visual Resource Allocation Dependencies -->
+                <div class="stat-label">Resource Allocation Dependencies (RAG):</div>
+                <div id="deadlockDependenciesList" class="rag-dependencies-box">
+                    <div class="text-muted font-mono text-center py-2">System in initial/idle state. No active dependencies.</div>
+                </div>
+
+                <div class="deadlock-sim-action">
+                    <button id="btnSimulateDeadlock" class="btn btn-secondary btn-sm" title="Demonstrate an inverted lock order (wait on empty inside locked mutex)">
+                        Simulate Deadlock Condition
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- 7. LIVE EVENT LOG -->
+        <section class="terminal-panel">
+            <div class="terminal-header">
+                <div class="terminal-title-group">
+                    <span class="terminal-icon font-mono">&gt;_</span>
+                    <span class="terminal-title">Live Event Log</span>
+                    <span class="text-muted font-mono" style="font-size: 10.5px;">Real-Time Concurrency Trace</span>
+                </div>
+                <div class="terminal-controls">
+                    <select id="logFilterSelect" class="terminal-select font-mono">
+                        <option value="ALL">All Events</option>
+                        <option value="PRODUCERS">Producers Only</option>
+                        <option value="CONSUMERS">Consumers Only</option>
+                        <option value="SYNC">Locks &amp; Sync</option>
+                        <option value="WARNINGS">Waits &amp; Alerts</option>
+                    </select>
+                    <button id="btnAutoScrollToggle" class="btn btn-secondary btn-sm active">Auto-Scroll: ON</button>
+                    <button id="btnClearLogs" class="btn btn-secondary btn-sm">Clear</button>
+                    <button id="btnExportLogs" class="btn btn-secondary btn-sm">Export Log</button>
+                </div>
+            </div>
+
+            <div id="eventLogContainer" class="terminal-window">
+                <!-- Log entries dynamically appended -->
+            </div>
+        </section>
+
+        <!-- 8. PERFORMANCE METRICS & LIVE CHART -->
+        <section class="glass-panel metrics-section">
+            <div class="section-title-wrap">
+                <h2>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    Performance Metrics &amp; Live Charts
+                </h2>
+                <p>Real-time throughput, latency, and buffer utilization telemetry.</p>
+            </div>
+
+            <!-- Metrics Cards Grid -->
+            <div class="metrics-cards-row">
+                <div class="metric-card">
+                    <span class="metric-header">Total Produced</span>
+                    <span id="metricTotalProduced" class="metric-val font-mono" style="color: var(--primary-cyan);">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Total Consumed</span>
+                    <span id="metricTotalConsumed" class="metric-val font-mono" style="color: var(--accent-emerald);">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Throughput</span>
+                    <span id="metricThroughput" class="metric-val font-mono" style="color: #60a5fa;">0.0 /s</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Execution Time</span>
+                    <span id="metricExecTime" class="metric-val font-mono">0.0s</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Avg Producer Wait</span>
+                    <span id="metricAvgProdWait" class="metric-val font-mono" style="color: #fbbf24;">0 ms</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Avg Consumer Wait</span>
+                    <span id="metricAvgConsWait" class="metric-val font-mono" style="color: #fbbf24;">0 ms</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-header">Buffer Utilization</span>
+                    <span id="metricBufferUtil" class="metric-val font-mono" style="color: #c084fc;">0%</span>
+                </div>
+            </div>
+
+            <!-- Live Chart Canvas -->
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <span class="text-muted font-mono" style="font-size: 11px;">SIMULATION TELEMETRY (OVER TIME)</span>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot dot-produced"></span>
+                            <span>Produced Items</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot dot-consumed"></span>
+                            <span>Consumed Items</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot dot-buffer"></span>
+                            <span>Buffer Occupancy</span>
+                        </div>
+                    </div>
+                </div>
+                <canvas id="liveMetricsCanvas"></canvas>
+            </div>
+        </section>
+
+        <!-- 9. SIMULATION FLOW SECTION -->
+        <section class="glass-panel flow-section">
+            <div class="flow-tabs-header">
+                <div class="section-title-wrap">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        OS Synchronization Flow &amp; Algorithm
+                    </h2>
+                    <p>Formal synchronization protocol execution path with real-time active step tracking.</p>
+                </div>
+                <div class="flow-tabs">
+                    <button id="tabFlowchart" class="tab-btn active">Flowchart Diagram</button>
+                    <button id="tabCode" class="tab-btn">C/C++ POSIX Implementation</button>
+                </div>
+            </div>
+
+            <!-- Flowchart Visual View -->
+            <div id="viewFlowchart" class="flowchart-container">
+                <!-- Producer Flow -->
+                <div class="flow-column">
+                    <div class="flow-col-title" style="color: var(--primary-cyan);">Producer Algorithm</div>
+                    <div id="flow-gen" class="flow-step">
+                        <span class="flow-step-num">1</span>
+                        <span class="flow-step-label">Generate Item (Data Creation)</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-wait-full" class="flow-step">
+                        <span class="flow-step-num">2</span>
+                        <span class="flow-step-label">sem_wait(&amp;empty) [Check Buffer Full]</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-lock" class="flow-step">
+                        <span class="flow-step-num">3</span>
+                        <span class="flow-step-label">pthread_mutex_lock(&amp;mutex)</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-insert" class="flow-step" style="border-color: rgba(6, 182, 212, 0.4);">
+                        <span class="flow-step-num">4</span>
+                        <span class="flow-step-label"><strong>[CRITICAL SECTION]</strong> Insert Item at buffer[in]</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-unlock" class="flow-step">
+                        <span class="flow-step-num">5</span>
+                        <span class="flow-step-label">pthread_mutex_unlock(&amp;mutex)</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-notify-cons" class="flow-step">
+                        <span class="flow-step-num">6</span>
+                        <span class="flow-step-label">sem_post(&amp;full) [Notify Consumer]</span>
+                    </div>
+                </div>
+
+                <!-- Consumer Flow -->
+                <div class="flow-column">
+                    <div class="flow-col-title" style="color: var(--accent-emerald);">Consumer Algorithm</div>
+                    <div id="flow-wait-empty" class="flow-step">
+                        <span class="flow-step-num">1</span>
+                        <span class="flow-step-label">sem_wait(&amp;full) [Check Buffer Empty]</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <span class="flow-step-num">2</span>
+                        <span class="flow-step-label">pthread_mutex_lock(&amp;mutex)</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-remove" class="flow-step" style="border-color: rgba(16, 185, 129, 0.4);">
+                        <span class="flow-step-num">3</span>
+                        <span class="flow-step-label"><strong>[CRITICAL SECTION]</strong> Remove Item from buffer[out]</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <span class="flow-step-num">4</span>
+                        <span class="flow-step-label">pthread_mutex_unlock(&amp;mutex)</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div id="flow-notify-prod" class="flow-step">
+                        <span class="flow-step-num">5</span>
+                        <span class="flow-step-label">sem_post(&amp;empty) [Notify Producer]</span>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <span class="flow-step-num">6</span>
+                        <span class="flow-step-label">Process / Consume Item</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- C/C++ POSIX Code View -->
+            <div id="viewCode" class="code-view-container">
+<pre><span class="code-comment">/* POSIX Pthreads &amp; Semaphores Producer-Consumer Synchronization */</span>
+<span class="code-keyword">#include</span> <span class="code-string">&lt;pthread.h&gt;</span>
+<span class="code-keyword">#include</span> <span class="code-string">&lt;semaphore.h&gt;</span>
+
+<span class="code-keyword">#define</span> BUFFER_SIZE <span class="code-num">8</span>
+<span class="code-keyword">int</span> buffer[BUFFER_SIZE];
+<span class="code-keyword">int</span> in = <span class="code-num">0</span>, out = <span class="code-num">0</span>;
+
+<span class="code-comment">/* Primitives: Mutex for Mutual Exclusion; Semaphores for Counting Available Slots */</span>
+<span class="code-keyword">pthread_mutex_t</span> mutex = PTHREAD_MUTEX_INITIALIZER;
+<span class="code-keyword">sem_t</span> empty_slots;  <span class="code-comment">// Initialized to BUFFER_SIZE</span>
+<span class="code-keyword">sem_t</span> full_items;   <span class="code-comment">// Initialized to 0</span>
+
+<span class="code-keyword">void</span>* <span class="code-func">producer</span>(<span class="code-keyword">void</span>* arg) {
+    <span class="code-keyword">while</span> (<span class="code-num">1</span>) {
+        <span class="code-keyword">int</span> item = produce_item();
+
+        <span class="code-func">sem_wait</span>(&amp;empty_slots);            <span class="code-comment">// Wait if buffer is full</span>
+        <span class="code-func">pthread_mutex_lock</span>(&amp;mutex);        <span class="code-comment">// Acquire exclusive critical section lock</span>
+
+        <span class="code-comment">/* Critical Section */</span>
+        buffer[in] = item;
+        in = (in + <span class="code-num">1</span>) % BUFFER_SIZE;
+
+        <span class="code-func">pthread_mutex_unlock</span>(&amp;mutex);      <span class="code-comment">// Release critical section lock</span>
+        <span class="code-func">sem_post</span>(&amp;full_items);             <span class="code-comment">// Increment full count &amp; notify consumer</span>
+    }
+}
+
+<span class="code-keyword">void</span>* <span class="code-func">consumer</span>(<span class="code-keyword">void</span>* arg) {
+    <span class="code-keyword">while</span> (<span class="code-num">1</span>) {
+        <span class="code-func">sem_wait</span>(&amp;full_items);             <span class="code-comment">// Wait if buffer is empty</span>
+        <span class="code-func">pthread_mutex_lock</span>(&amp;mutex);        <span class="code-comment">// Acquire exclusive critical section lock</span>
+
+        <span class="code-comment">/* Critical Section */</span>
+        <span class="code-keyword">int</span> item = buffer[out];
+        out = (out + <span class="code-num">1</span>) % BUFFER_SIZE;
+
+        <span class="code-func">pthread_mutex_unlock</span>(&amp;mutex);      <span class="code-comment">// Release critical section lock</span>
+        <span class="code-func">sem_post</span>(&amp;empty_slots);            <span class="code-comment">// Increment empty count &amp; notify producer</span>
+
+        consume_item(item);
+    }
+}</pre>
+            </div>
+        </section>
+
+        <!-- 10. FOOTER -->
+        <footer class="site-footer">
+            <div class="footer-title">Producer-Consumer Synchronization Simulator</div>
+            <div>Operating Systems PBL (Problem Based Learning)</div>
+            <div class="footer-tags">
+                <span>Synchronization</span>
+                <span>•</span>
+                <span>Critical Section</span>
+                <span>•</span>
+                <span>Mutex</span>
+                <span>•</span>
+                <span>Counting Semaphores</span>
+                <span>•</span>
+                <span>Deadlock Prevention</span>
+            </div>
+        </footer>
+    </main>
+
+    <!-- JavaScript Modules (Modular Architecture) -->
+    <script src="js/buffer.js"></script>
+    <script src="js/synchronization.js"></script>
+    <script src="js/deadlock.js"></script>
+    <script src="js/logger.js"></script>
+    <script src="js/metrics.js"></script>
+    <script src="js/producer.js"></script>
+    <script src="js/consumer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
